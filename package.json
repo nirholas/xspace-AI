@@ -3,6 +3,14 @@
   "name": "xspace-agent-monorepo",
   "version": "0.1.0",
   "private": true,
+  "description": "AI agents that join, listen, and speak in X/Twitter Spaces — TypeScript SDK plus server, dashboard, and voice pipeline.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nirholas/xspace-AI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nirholas/xspace-AI/issues"
+  },
   "main": "dist/server/index.js",
   "types": "dist/server/index.d.ts",
   "files": [

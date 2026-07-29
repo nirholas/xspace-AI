@@ -19,6 +19,9 @@ pulse.config.json
 debug-screenshots/
 *.png
 
+# Recorded Space conversations (runtime output)
+.xspace-conversations/
+
 # Logs
 logs
 *.log
