@@ -1,6 +1,6 @@
 > **Internal Planning Document** — Not part of the public documentation.
 
-> **Outdated**: This describes a previous combined system design that is no longer relevant. See [architecture-overview.md](./architecture-overview.md) for current architecture.
+> **Outdated**: This describes a previous combined system design that is no longer relevant. See [architecture-overview.md](../architecture-overview.md) for current architecture.
 
 # Prompt: Combined System — Talky Characters Live in X Spaces
 

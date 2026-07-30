@@ -330,7 +330,7 @@ export async function aggressiveUnmute(
     JSON.stringify(btns.slice(0, 20)),
   );
   try {
-    await page.screenshot({ path: '/workspaces/xspace-agent/debug-screenshots/aggressive-unmute-failed.png' });
+    await page.screenshot({ path: path.join(os.tmpdir(), 'xspace-aggressive-unmute-failed.png') });
   } catch { /* ignore */ }
 
   // Audio injection via controlled stream may still work even if UI didn't toggle
@@ -791,8 +791,9 @@ export async function requestSpeaker(
         getLogger().warn('[X-Spaces] Speaker request sent but could not verify UI state change');
         // Take a debug screenshot when we can't verify
         try {
-          await page.screenshot({ path: '/workspaces/xspace-agent/debug-screenshots/request-speak-unverified.png' });
-          getLogger().info('[X-Spaces] Debug screenshot saved: request-speak-unverified.png');
+          const shotPath = path.join(os.tmpdir(), 'xspace-request-speak-unverified.png');
+          await page.screenshot({ path: shotPath });
+          getLogger().info(`[X-Spaces] Debug screenshot saved: ${shotPath}`);
         } catch { /* ignore screenshot errors */ }
       }
 
@@ -830,8 +831,9 @@ export async function requestSpeaker(
   );
   // Take debug screenshot
   try {
-    await page.screenshot({ path: '/workspaces/xspace-agent/debug-screenshots/request-speak-not-found.png' });
-    getLogger().info('[X-Spaces] Debug screenshot saved: request-speak-not-found.png');
+    const shotPath = path.join(os.tmpdir(), 'xspace-request-speak-not-found.png');
+    await page.screenshot({ path: shotPath });
+    getLogger().info(`[X-Spaces] Debug screenshot saved: ${shotPath}`);
   } catch { /* ignore */ }
   return false;
 }

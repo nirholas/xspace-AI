@@ -1,6 +1,6 @@
 # Build Log — autonomous X Spaces voice agent
 
-Complete narrative of how this system was built on 2026-05-13. Includes every dead-end, every patch, and every recovery so anyone can pick up the work cold. Read alongside [`README.md`](./README.md), [`docs/architecture.md`](./docs/architecture.md), and [`docs/troubleshooting.md`](./docs/troubleshooting.md).
+Complete narrative of how this system was built on 2026-05-13. Includes every dead-end, every patch, and every recovery so anyone can pick up the work cold. Read alongside [`README.md`](../README.md), [`ARCHITECTURE.md`](./ARCHITECTURE.md), and [`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md).
 
 The goal across all phases: have one or more AI agents join an X (Twitter) Space as speakers, hold a real-time voice conversation with each other and with humans in the room, and run entirely in the cloud with no operator audio routing required.
 

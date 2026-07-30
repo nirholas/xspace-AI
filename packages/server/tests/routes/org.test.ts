@@ -125,6 +125,36 @@ vi.mock('xspace-agent', () => ({
   TeamRepository: vi.fn(() => mockTeamRepo),
   AuditRepository: vi.fn(() => mockAuditRepo),
   UserRepository: vi.fn(() => mockUserRepo),
+  // src/routes/org.ts imports the RBAC helpers from the 'xspace-agent' package
+  // root, so they have to be mocked here. Mocking only the
+  // xspace-agent/rbac/permissions sub-path leaves ROLES undefined in the route,
+  // which throws out of the async handler and hangs the request.
+  ROLES: {
+    owner: { description: 'Full access' },
+    admin: { description: 'Administrative access' },
+    manager: { description: 'Management access' },
+    developer: { description: 'Development access' },
+    viewer: { description: 'Read-only access' },
+  },
+  resolvePermissions: vi.fn((role: string) => {
+    const perms: Record<string, string[]> = {
+      owner: ['*'],
+      admin: ['org:read', 'org:settings', 'members:*', 'agents:*'],
+      manager: ['org:read', 'agents:*', 'members:read'],
+      developer: ['org:read', 'agents:read', 'agents:create'],
+      viewer: ['org:read', 'agents:read'],
+    }
+    return new Set(perms[role] ?? [])
+  }),
+  isRoleAtLeast: vi.fn((userRole: string, targetRole: string) => {
+    const hierarchy = ['viewer', 'developer', 'manager', 'admin', 'owner']
+    return hierarchy.indexOf(userRole) >= hierarchy.indexOf(targetRole)
+  }),
+  validatePermissions: vi.fn((perms: string[]) => {
+    const invalid = perms.filter((p) => !p.includes(':'))
+    return { valid: invalid.length === 0, invalid }
+  }),
+  hasPermission: vi.fn(() => true),
 }))
 
 // Mock authorize middleware to pass through for most tests
@@ -360,7 +390,7 @@ describe('Org Routes', () => {
     })
 
     it('returns 403 for privilege escalation', async () => {
-      const { isRoleAtLeast } = await import('xspace-agent/rbac/permissions')
+      const { isRoleAtLeast } = await import('xspace-agent')
       ;(isRoleAtLeast as any).mockReturnValueOnce(false)
 
       const app = buildApp()
@@ -535,7 +565,7 @@ describe('Org Routes', () => {
     })
 
     it('returns 403 for privilege escalation', async () => {
-      const { isRoleAtLeast } = await import('xspace-agent/rbac/permissions')
+      const { isRoleAtLeast } = await import('xspace-agent')
       ;(isRoleAtLeast as any).mockReturnValueOnce(true)  // first call passes (role check)
         .mockReturnValueOnce(false)  // second call fails (cannot modify higher role)
 
@@ -671,7 +701,7 @@ describe('Org Routes', () => {
     })
 
     it('returns 400 for invalid permissions', async () => {
-      const { validatePermissions } = await import('xspace-agent/rbac/permissions')
+      const { validatePermissions } = await import('xspace-agent')
       ;(validatePermissions as any).mockReturnValueOnce({ valid: false, invalid: ['badperm'] })
 
       const app = buildApp()
@@ -731,7 +761,7 @@ describe('Org Routes', () => {
     })
 
     it('validates permissions when updating', async () => {
-      const { validatePermissions } = await import('xspace-agent/rbac/permissions')
+      const { validatePermissions } = await import('xspace-agent')
       ;(validatePermissions as any).mockReturnValueOnce({ valid: false, invalid: ['bad'] })
 
       const app = buildApp()

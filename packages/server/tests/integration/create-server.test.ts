@@ -120,12 +120,13 @@ vi.mock('xspace-agent', () => {
     generateInsights: () => Promise.resolve([]),
     scoreSentiment: () => 0,
     SessionRepository: StubRepo,
-    ConversationRepository: StubRepo,
+    ConversationDBRepository: StubRepo,
     // Deployments (routes/deployments.ts)
     AgentRepository: StubRepo,
     AgentVersionRepository: StubRepo,
     AgentDeploymentRepository: StubRepo,
     AuditRepository: StubRepo,
+    CICDService: StubRepo,
     // Quota middleware (middleware/quota.ts)
     UsageTracker: StubRepo,
     RATE_LIMITS_BY_PLAN: {},
@@ -236,14 +237,17 @@ describe('createServer integration', () => {
   // 5. Protected endpoints return 401 without API key
   // --------------------------------------------------------------------------
 
-  it('GET /config returns 401 without API key', async () => {
+  // /config is deliberately public: unauthenticated browser pages
+  // (public/js/agent-loader.js, voice-chat-session.html) read it on load, and it
+  // exposes only the provider name and status, never a key or a Space URL.
+  it('GET /config is public and exposes only non-sensitive fields', async () => {
     const srv = await buildServer()
     const app = srv.getApp()
 
     const res = await request(app).get('/config')
 
-    expect(res.status).toBe(401)
-    expect(res.body).toHaveProperty('error', 'Unauthorized')
+    expect(res.status).toBe(200)
+    expect(Object.keys(res.body).sort()).toEqual(['aiProvider', 'status'])
   })
 
   it('GET /state returns 401 without API key', async () => {
@@ -379,17 +383,21 @@ describe('createServer integration', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Additional: GET /builder returns HTML (unauthenticated static route)
+  // Additional: GET /builder is an auth-gated operator page
   // --------------------------------------------------------------------------
 
-  it('GET /builder returns HTML content without auth', async () => {
+  // builder.html is listed in GATED_PAGES in src/routes/static-gate.ts, so the
+  // route requires the admin key and serves HTML only once it is supplied.
+  it('GET /builder returns 401 without auth and HTML with the API key', async () => {
     const srv = await buildServer()
     const app = srv.getApp()
 
-    const res = await request(app).get('/builder')
+    const unauthed = await request(app).get('/builder')
+    expect(unauthed.status).toBe(401)
 
-    expect(res.status).toBe(200)
-    expect(res.headers['content-type']).toMatch(/html/)
+    const authed = await request(app).get('/builder').set('X-API-Key', TEST_API_KEY)
+    expect(authed.status).toBe(200)
+    expect(authed.headers['content-type']).toMatch(/html/)
   })
 
   // --------------------------------------------------------------------------

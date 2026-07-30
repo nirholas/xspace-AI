@@ -46,8 +46,10 @@ await agent.join('https://x.com/i/spaces/YOUR_SPACE_ID')
 Or skip the code entirely with the CLI:
 
 ```bash
-npx xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
+node packages/cli/bin/xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
 ```
+
+(Once the packages are published this becomes `npx xspace-agent join <url>`.)
 
 ## Features
 
@@ -58,7 +60,7 @@ npx xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
 <td align="center">🔧<br><b>Middleware Pipeline</b><br>Hook into STT → LLM → TTS<br>at any stage</td>
 </tr>
 <tr>
-<td align="center">💻<br><b>Zero-Code CLI</b><br><code>npx xspace-agent join &lt;url&gt;</code><br>no SDK needed</td>
+<td align="center">💻<br><b>Zero-Code CLI</b><br><code>xspace-agent join &lt;url&gt;</code><br>no SDK needed</td>
 <td align="center">📊<br><b>Admin Dashboard</b><br>Web UI to monitor and<br>control live agents</td>
 <td align="center">🔷<br><b>TypeScript-First</b><br>Full type safety,<br>autocomplete included</td>
 </tr>
@@ -76,9 +78,18 @@ npx xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
 
 **1. Install**
 
+> The packages in this monorepo are **not published to npm yet**, so `npm install xspace-agent`
+> will 404. Install from source until the first release lands:
+
 ```bash
-npm install xspace-agent
+git clone https://github.com/nirholas/xspace-AI.git
+cd xspace-AI
+pnpm install
+pnpm build
 ```
+
+The SDK is then importable from `packages/core` (published name: `xspace-agent`),
+and the CLI runs from `packages/cli/bin/xspace-agent`.
 
 **2. Set environment variables**
 
@@ -120,21 +131,25 @@ await agent.join('https://x.com/i/spaces/YOUR_SPACE_ID')
 Or skip the code entirely with the CLI:
 
 ```bash
-npx xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
+node packages/cli/bin/xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --provider openai
 ```
+
+(Once the packages are published this becomes `npx xspace-agent join <url>`.)
 
 ## Deploy
 
 <p>
-  <a href="https://railway.app/new/template?template=https://github.com/nirholas/xspace-agent"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
+  <a href="https://railway.app/new/template?template=https://github.com/nirholas/xspace-AI"><img src="https://railway.app/button.svg" alt="Deploy on Railway" height="32" /></a>
   &nbsp;
-  <a href="https://render.com/deploy?repo=https://github.com/nirholas/xspace-agent"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
+  <a href="https://render.com/deploy?repo=https://github.com/nirholas/xspace-AI"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
 </p>
 
-Or with Docker:
+Or with Docker, using the `Dockerfile` in this repo (no image is published to a
+registry yet):
 
 ```bash
-docker run -e OPENAI_API_KEY=sk-... ghcr.io/nirholas/xspace-agent
+npm run docker:build
+docker run -e OPENAI_API_KEY=sk-... -p 3000:3000 --shm-size=2gb xspace-agent
 ```
 
 ## Documentation
@@ -154,9 +169,9 @@ Full docs live in [docs/](docs/). Key guides:
 
 ## Project Structure
 
-This is a **pnpm monorepo** with five publishable packages, a standalone voice agent, and supporting infrastructure.
+This is a **pnpm monorepo** with six publishable packages, a standalone voice agent, and supporting infrastructure.
 
-### Packages (npm-published)
+### Packages (workspace packages, not yet published to npm)
 
 ```
 packages/
@@ -195,6 +210,11 @@ packages/
 
   create-xspace-agent/ → create-xspace-agent   Project scaffolding (like create-react-app)
                          └── templates/base/     Starter project template
+
+  web-client/          → @xspace/web-client    Browser SDK for x402 pay-per-question
+                         ├── client.ts           Question/payment client
+                         ├── x402-fetch.ts       x402 payment-aware fetch wrapper
+                         └── wallet/             Browser wallet adapters
 ```
 
 ### Application Code
@@ -228,9 +248,10 @@ x-spaces/             Low-level Puppeteer automation scripts (JavaScript)
 ```
 examples/              12 runnable projects — basic-join, multi-agent-debate, discord-bridge,
                        custom-provider, middleware-pipeline, express-integration, scheduled-spaces,
-                       chrome-connect, with-plugins, and more. Each has its own package.json.
+                       chrome-connect, with-plugins, and more. All but `plugins/` (a set of
+                       reusable plugin modules) have their own package.json.
 
-docs/                  43 markdown files — architecture overview, API reference (REST + WebSocket),
+docs/                  78 markdown files: architecture overview, API reference (REST + WebSocket),
                        provider guides, deployment (Docker, Railway, Render, VPS), troubleshooting,
                        plugin system, configuration, and internal design specs.
 
@@ -245,7 +266,7 @@ public/                Frontend assets — admin dashboard, agent builder, voice
 
 docker/                Monitoring stack — Prometheus scrape configs + Grafana dashboards
 
-tasks/                 14 implementation specs & roadmap items (landing page, design system,
+tasks/                 43 implementation specs & roadmap items (landing page, design system,
                        docs site, onboarding flow, admin dashboard v2, auth, rate limiting, etc.)
 
 tests/                 Top-level integration & load tests
@@ -349,8 +370,7 @@ _Be the first! [Open a PR](CONTRIBUTING.md) to add your project._
 
 ## Community
 
-- 🐛 [GitHub Issues](https://github.com/nirholas/xspace-agent/issues) — bug reports and feature requests
-- 🗣️ [GitHub Discussions](https://github.com/nirholas/xspace-agent/discussions) — ideas and broader conversations
+- 🐛 [GitHub Issues](https://github.com/nirholas/xspace-AI/issues): bug reports, feature requests, questions, and ideas
 
 ## Contributing
 

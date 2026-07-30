@@ -53,8 +53,8 @@ routes to the matching facilitator.
 
 ### Server (this repo)
 
-Add to [`.env`](../.env) — see [`.env.example`](../.env.example) for the full
-template:
+Add to `.env` in the repo root (it is untracked). See [`.env.example`](../.env.example)
+for the full template:
 
 ```ini
 # Solana — Coinbase CDP facilitator

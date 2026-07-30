@@ -145,14 +145,13 @@ describe('BrowserLifecycle', () => {
       expect(page).toBe(mockPage)
     })
 
-    it('should inject audio hooks after launching', async () => {
+    it('should defer audio hook injection until the Space is joined', async () => {
+      // launch() only stores the callback. Injecting at launch time interferes
+      // with X's initial WebRTC peer connection, so lifecycle.ts injects the
+      // hooks inside joinSpace() instead.
       await lifecycle.launch(onAudioData)
 
-      expect(injectAudioHooks).toHaveBeenCalledWith(
-        mockPage,
-        onAudioData,
-        browserConfig.mode,
-      )
+      expect(injectAudioHooks).not.toHaveBeenCalled()
     })
 
     it('should throw BrowserConnectionError if already launched', async () => {
@@ -272,6 +271,17 @@ describe('BrowserLifecycle', () => {
       )
       expect(spaceUI.requestSpeaker).toHaveBeenCalled()
       expect(spaceUI.aggressiveUnmute).toHaveBeenCalled()
+    })
+
+    it('should inject audio hooks after joining', async () => {
+      await lifecycle.launch(onAudioData)
+      await lifecycle.joinSpace(spaceUrl)
+
+      expect(injectAudioHooks).toHaveBeenCalledWith(
+        mockPage,
+        onAudioData,
+        browserConfig.mode,
+      )
     })
 
     it('should wait for speaker access when request is pending', async () => {

@@ -1,7 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§32]
 
-import inquirer from 'inquirer';
+// inquirer v9 ships ESM only, while this package emits CommonJS (its bin shim is
+// a require() call). A static import therefore fails to compile with TS1479.
+// Loading it through a dynamic import keeps the CommonJS output and defers
+// resolution to runtime, where Node can load ESM.
+
+type Inquirer = (typeof import('inquirer', {
+  with: { 'resolution-mode': 'import' },
+}))['default'];
+
+let inquirerPromise: Promise<Inquirer> | undefined;
+
+function loadInquirer(): Promise<Inquirer> {
+  inquirerPromise ??= import('inquirer').then((mod) => mod.default);
+  return inquirerPromise;
+}
 
 export interface InitAnswers {
   provider: string;
@@ -14,7 +28,7 @@ export interface InitAnswers {
 }
 
 export async function promptInit(): Promise<InitAnswers> {
-  const answers = await inquirer.prompt([
+  const answers = await (await loadInquirer()).prompt([
     {
       type: 'list',
       name: 'provider',
@@ -62,7 +76,7 @@ export async function promptInit(): Promise<InitAnswers> {
 }
 
 export async function promptAuth(): Promise<{ method: string; authToken?: string; username?: string; password?: string }> {
-  const { method } = await inquirer.prompt([
+  const { method } = await (await loadInquirer()).prompt([
     {
       type: 'list',
       name: 'method',
@@ -75,7 +89,7 @@ export async function promptAuth(): Promise<{ method: string; authToken?: string
   ]);
 
   if (method === 'token') {
-    const { authToken } = await inquirer.prompt([
+    const { authToken } = await (await loadInquirer()).prompt([
       {
         type: 'password',
         name: 'authToken',
@@ -87,7 +101,7 @@ export async function promptAuth(): Promise<{ method: string; authToken?: string
     return { method, authToken };
   }
 
-  const credentials = await inquirer.prompt([
+  const credentials = await (await loadInquirer()).prompt([
     {
       type: 'input',
       name: 'username',

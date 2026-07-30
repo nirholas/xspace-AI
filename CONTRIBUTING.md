@@ -141,7 +141,7 @@ Examples:
 
 ## Need Help?
 
-- Open a [Discussion](https://github.com/xspace-agent/xspace-agent/discussions)
+- Open an [Issue](https://github.com/nirholas/xspace-AI/issues)
 - Tag `@maintainers` in your PR
 
 

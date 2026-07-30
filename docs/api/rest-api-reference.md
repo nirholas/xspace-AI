@@ -3951,7 +3951,7 @@ Get provider health check results.
 
 ## Appendix: Socket.IO Events
 
-The server also exposes a Socket.IO namespace at `/space` for real-time bidirectional communication. See the [Socket.IO documentation](../architecture/socket-events.md) for the full event reference.
+The server also exposes a Socket.IO namespace at `/space` for real-time bidirectional communication. See the [Socket.IO documentation](./websocket-events.md) for the full event reference.
 
 **Client to Server events** (validated, rate-limited at 30 events per 10 seconds):
 

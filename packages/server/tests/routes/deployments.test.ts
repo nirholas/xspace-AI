@@ -77,6 +77,9 @@ vi.mock('xspace-agent', () => ({
   AuditRepository: vi.fn(() => ({
     log: vi.fn(async () => {}),
   })),
+  // src/routes/deployments.ts imports CICDService from the package root, not
+  // from the xspace-agent/cicd sub-path, so the root mock has to provide it.
+  CICDService: vi.fn(() => mockCicd),
 }))
 
 vi.mock('xspace-agent/cicd', () => ({

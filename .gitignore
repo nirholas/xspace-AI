@@ -15,9 +15,9 @@ operators.json.tmp
 # PulseAudio client map — operator-specific, lives on the VM
 pulse.config.json
 
-# Debug screenshots
+# Debug screenshots (Puppeteer writes here; product images under public/ and
+# packages/*/public/ must stay tracked, so do not blanket-ignore *.png)
 debug-screenshots/
-*.png
 
 # Recorded Space conversations (runtime output)
 .xspace-conversations/

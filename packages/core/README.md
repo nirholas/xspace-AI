@@ -4,9 +4,16 @@ TypeScript SDK for building AI voice agents in X/Twitter Spaces.
 
 ## Quick Start
 
+Not published to npm yet. Until the first release, install from source:
+
 ```bash
-npm install xspace-agent
+git clone https://github.com/nirholas/xspace-AI.git
+cd xspace-AI
+pnpm install
+pnpm build
 ```
+
+Once the packages are published this becomes `npm install xspace-agent`.
 
 ```typescript
 import { XSpaceAgent } from 'xspace-agent';

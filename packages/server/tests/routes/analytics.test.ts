@@ -38,7 +38,7 @@ vi.mock('xspace-agent', () => ({
   SessionRepository: vi.fn().mockImplementation(function (this: any) {
     this.findById = mockFindById
   }),
-  ConversationRepository: vi.fn().mockImplementation(function (this: any) {
+  ConversationDBRepository: vi.fn().mockImplementation(function (this: any) {
     this.findBySessionId = mockFindBySessionId
   }),
   runAnalyticsPipeline: vi.fn().mockReturnValue({

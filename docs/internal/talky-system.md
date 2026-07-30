@@ -1,6 +1,6 @@
 > **Internal Planning Document** — Not part of the public documentation.
 
-> **Outdated**: The Talky Show system has been removed from this project. See [architecture-overview.md](./architecture-overview.md) for current architecture.
+> **Outdated**: The Talky Show system has been removed from this project. See [architecture-overview.md](../architecture-overview.md) for current architecture.
 
 # Talky Show System (NOT for standalone repo)
 

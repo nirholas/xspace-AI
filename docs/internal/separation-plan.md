@@ -1,6 +1,6 @@
 > **Internal Planning Document** — Not part of the public documentation.
 
-> **Outdated**: This separation has been completed. The codebase is now a monorepo. See [architecture-overview.md](./architecture-overview.md) for current architecture.
+> **Outdated**: This separation has been completed. The codebase is now a monorepo. See [architecture-overview.md](../architecture-overview.md) for current architecture.
 
 # Separation Plan — What to Keep for Standalone Repo
 

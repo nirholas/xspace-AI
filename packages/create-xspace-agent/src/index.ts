@@ -2,13 +2,29 @@
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§65]
 
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as childProcess from 'child_process';
 import Handlebars from 'handlebars';
+
+// ── inquirer loader ─────────────────────────────────────────────────────────
+// inquirer v9 ships ESM only, while this package emits CommonJS (it relies on
+// __dirname and its bin shim is a require() call). A static import therefore
+// fails to compile with TS1479. Loading it through a dynamic import keeps the
+// CommonJS output and defers resolution to runtime, where Node can load ESM.
+
+type Inquirer = (typeof import('inquirer', {
+  with: { 'resolution-mode': 'import' },
+}))['default'];
+
+let inquirerPromise: Promise<Inquirer> | undefined;
+
+function loadInquirer(): Promise<Inquirer> {
+  inquirerPromise ??= import('inquirer').then((mod) => mod.default);
+  return inquirerPromise;
+}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -145,7 +161,7 @@ async function gatherOptions(
     default: true,
   });
 
-  const answers = questions.length > 0 ? await inquirer.prompt(questions) : {};
+  const answers = questions.length > 0 ? await (await loadInquirer()).prompt(questions) : {};
 
   return {
     name: projectNameArg || answers.name,
@@ -162,7 +178,7 @@ async function createProject(options: ProjectOptions, runInstall: boolean): Prom
   const targetDir = path.resolve(process.cwd(), options.name);
 
   if (fs.existsSync(targetDir)) {
-    const { proceed } = await inquirer.prompt([
+    const { proceed } = await (await loadInquirer()).prompt([
       {
         type: 'confirm',
         name: 'proceed',

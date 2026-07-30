@@ -1,6 +1,6 @@
 > **Internal Planning Document** — Not part of the public documentation.
 
-> **Outdated**: This describes the legacy monolithic `server.js`. The codebase has been refactored into a monorepo. See [architecture-overview.md](./architecture-overview.md) for current architecture.
+> **Outdated**: This describes the legacy monolithic `server.js`. The codebase has been refactored into a monorepo. See [architecture-overview.md](../architecture-overview.md) for current architecture.
 
 # server.js — Complete Line-by-Line Breakdown
 

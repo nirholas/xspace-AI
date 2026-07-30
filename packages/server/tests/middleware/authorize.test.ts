@@ -6,13 +6,17 @@
 // =============================================================================
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { authorize, requireRole, requireEnterprise } from '../../src/middleware/authorize'
 import type { Request, Response, NextFunction } from 'express'
 import type { TenantContext, Plan, Quotas, FeatureFlags, Organization } from 'xspace-agent/tenant/types'
-// Import the mocked hasPermission so we can control its return value per test.
-// The vitest alias resolves xspace-agent/rbac/permissions to a stub mock
-// that exports hasPermission as a vi.fn().
-import { hasPermission } from 'xspace-agent/rbac/permissions'
+
+// src/middleware/authorize.ts imports hasPermission from the 'xspace-agent'
+// package root, so that is the specifier the mock has to intercept. Mocking
+// the xspace-agent/rbac/permissions sub-path instead produces a second,
+// unrelated stub that the middleware never calls.
+const mockHasPermission = vi.hoisted(() => vi.fn())
+vi.mock('xspace-agent', () => ({ hasPermission: mockHasPermission }))
+
+import { authorize, requireRole, requireEnterprise } from '../../src/middleware/authorize'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -104,9 +108,6 @@ function mockRes(): Response & { _status: number; _json: unknown } {
   }
   return res
 }
-
-// Cast hasPermission to a vi.fn type for mockReturnValue etc.
-const mockHasPermission = hasPermission as unknown as ReturnType<typeof vi.fn>
 
 // =============================================================================
 // authorize(permission)

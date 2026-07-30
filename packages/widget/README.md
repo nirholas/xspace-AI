@@ -4,9 +4,16 @@ Embeddable chat widget for xspace-agent. Connects to your agent via Socket.IO an
 
 ## Installation
 
+Not published to npm yet. Until the first release, install from source:
+
 ```bash
-npm install @xspace/widget
+git clone https://github.com/nirholas/xspace-AI.git
+cd xspace-AI
+pnpm install
+pnpm build
 ```
+
+Once the packages are published this becomes `npm install @xspace/widget`.
 
 ## Quick Start (ESM)
 
