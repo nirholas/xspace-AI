@@ -148,7 +148,10 @@ export class BrowserManager {
       `--use-file-for-fake-audio-capture=${AUDIO_FILE}`,
       '--autoplay-policy=no-user-gesture-required',
       '--disable-features=WebRtcHideLocalIpsWithMdns',
-      '--window-size=1280,720',
+      // Tall enough that the Space peek modal's "Start listening" button lands
+      // inside the viewport — at 720px it falls below the fold and the
+      // coordinate-based click misses it.
+      '--window-size=1280,1000',
       ...extraArgs,
     ];
 
@@ -161,7 +164,7 @@ export class BrowserManager {
       executablePath: this.config.executablePath,
       userDataDir: this.config.userDataDir,
       args: launchArgs,
-      defaultViewport: { width: 1280, height: 720 },
+      defaultViewport: { width: 1280, height: 1000 },
     });
 
     this._page = await this._browser!.newPage();

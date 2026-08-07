@@ -222,13 +222,15 @@ export const SELECTOR_DEFINITIONS: SelectorDefinition[] = [
   {
     name: 'space-ended',
     description: 'Indicator that the Space has ended',
+    // Precise selectors only. Substring matches like [aria-label*="ended"] catch
+    // "Recommended" — everywhere on X — and span[dir="ltr"] matches any timeline
+    // text, both firing a false space-ended that tears the agent out of a live
+    // room. Match X's actual ended markers instead.
     strategies: [
       { name: 'testid', selector: '[data-testid="spaceEnded"]', priority: 1 },
       { name: 'testid-ended-banner', selector: '[data-testid="SpaceEndedBanner"]', priority: 2 },
-      { name: 'aria-ended', selector: '[aria-label*="ended" i]', priority: 3 },
-      { name: 'text-ended', selector: 'span[dir="ltr"]', priority: 4 },
     ],
-    textMatch: 'has ended',
+    textMatch: 'This Space has ended',
   },
   {
     name: 'space-live-indicator',

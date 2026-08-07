@@ -115,6 +115,12 @@ export interface AIConfig {
   maxTokens?: number;
   /** Sampling temperature — higher values produce more creative responses. */
   temperature?: number;
+  /**
+   * Reasoning budget for models that think before answering, passed through as
+   * `reasoning_effort` on OpenAI-compatible endpoints. Gemini defaults to
+   * `'minimal'` so reasoning tokens don't consume the reply's token budget.
+   */
+  reasoningEffort?: string;
   /** Maximum number of conversation messages to keep in history */
   maxHistory?: number;
   /** Request timeout configuration */
@@ -152,9 +158,11 @@ export interface AIConfig {
  */
 export interface VoiceConfig {
   /** TTS provider to use. `'browser'` delegates synthesis to the client. */
-  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google';
+  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini';
   /** API key for the TTS provider (not needed for `'browser'`). */
   apiKey?: string;
+  /** Model override. Gemini only (default: 'gemini-2.5-flash-preview-tts'). */
+  model?: string;
   /** Voice identifier — meaning depends on the provider. */
   voiceId?: string;
   /** Speech speed multiplier (default: 1.0). */
@@ -184,14 +192,17 @@ export interface VoiceConfig {
  */
 export interface TranscriptionConfig {
   /** STT provider to use. */
-  provider: 'groq' | 'openai' | 'google';
+  provider: 'groq' | 'openai' | 'google' | 'gemini';
   /** API key for the provider. Falls back to `ai.apiKey` if omitted. */
   apiKey?: string;
   /** BCP-47 language code (default: 'en-US'). Google only. */
   languageCode?: string;
   /** GCP project ID — enables Chirp 2 via the v2 API. Google only. */
   projectId?: string;
-  /** Model override. Google only (default: 'chirp_2' with projectId, 'chirp' without). */
+  /**
+   * Model override. Google: default 'chirp_2' with projectId, 'chirp' without.
+   * Gemini: default 'gemini-3.6-flash'.
+   */
   model?: string;
 }
 

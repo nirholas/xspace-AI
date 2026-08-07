@@ -134,7 +134,12 @@ export class XSpaceAgent extends EventEmitter {
           model: config.transcription.model,
         }
       : {
-          provider: config.ai.provider === 'openai' ? 'openai' : 'groq',
+          provider:
+            config.ai.provider === 'openai'
+              ? 'openai'
+              : config.ai.provider === 'gemini'
+                ? 'gemini'
+                : 'groq',
           apiKey: config.ai.apiKey || '',
         }
     const stt = createSTT(sttConfig)
@@ -144,11 +149,13 @@ export class XSpaceAgent extends EventEmitter {
     const ttsConfig: TTSConfig = {
       provider: config.voice?.provider || 'openai',
       apiKey: config.voice?.apiKey || config.ai.apiKey,
+      model: config.voice?.model,
       voiceId: config.voice?.voiceId,
       stability: config.voice?.stability,
       fallback: config.voice?.fallback?.map((fb) => ({
         provider: fb.provider,
         apiKey: fb.apiKey || config.ai.apiKey,
+        model: fb.model,
         voiceId: fb.voiceId,
         stability: fb.stability,
       })),

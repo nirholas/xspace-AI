@@ -187,8 +187,14 @@ export class HealthMonitor {
         this.spaceEndedHandler?.()
         this.stop()
       }
-    }).catch(() => {
-      // Page may be closed — treat as ended
+    }).catch((err) => {
+      // A WS close plus a transient eval failure is NOT proof the Space ended —
+      // X churns sockets constantly. Only conclude "ended" if the page is truly
+      // gone; otherwise let the slow poll re-confirm.
+      if (this.page && !this.page.isClosed()) {
+        getLogger().debug(`[HealthMonitor] ws-closed state check failed, not ending: ${err instanceof Error ? err.message : String(err)}`)
+        return
+      }
       this.statusChangeHandler?.('space-ended')
       this.spaceEndedHandler?.()
       this.stop()

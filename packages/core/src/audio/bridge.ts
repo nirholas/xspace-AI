@@ -49,6 +49,9 @@ export async function injectAudioHooks(
       async function getControlledStream(): Promise<MediaStream> {
         if (controlledStream) return controlledStream;
         injectionCtx = new AudioContext({ sampleRate: 48000 });
+        // Expose for the inline decode fallback in mp3ToPcmFloat32Browser, so
+        // playback shares this graph even if __decodeMp3 was wiped by a re-render.
+        (window as any).__injectionCtx = injectionCtx;
         destNode = injectionCtx.createMediaStreamDestination();
 
         // Register and create the injection AudioWorklet
@@ -442,10 +445,23 @@ export async function mp3ToPcmFloat32Browser(
   const base64 = mp3Buffer.toString("base64");
   const pcmArray: number[] = await page.evaluate(
     async (b64: string) => {
-      if ((window as any).__decodeMp3) {
-        return (window as any).__decodeMp3(b64);
-      }
-      throw new Error("Audio bridge not initialized — __decodeMp3 unavailable");
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+      // Prefer the injection AudioContext set up by the audio hooks so playback
+      // shares the same output graph. Fall back to a fresh context and decode
+      // inline — the pre-registered __decodeMp3 hook can be absent if the page
+      // re-rendered after hooks were installed, and we must not fail then.
+      // decodeAudioData handles any container the browser supports (MP3, WAV),
+      // so this works for both OpenAI (MP3) and Gemini (WAV) output.
+      const ctx =
+        (window as any).__injectionCtx ||
+        new (window.AudioContext || (window as any).webkitAudioContext)({
+          sampleRate: 48000,
+        });
+      const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+      return Array.from(audioBuffer.getChannelData(0));
     },
     base64
   );

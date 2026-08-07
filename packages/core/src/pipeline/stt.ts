@@ -12,13 +12,16 @@ import { getMetrics } from '../observability/metrics'
 import { getAppLogger } from '../observability/logger'
 
 export interface STTConfig {
-  provider: 'groq' | 'openai' | 'google'
+  provider: 'groq' | 'openai' | 'google' | 'gemini'
   apiKey: string
   /** Google Cloud project ID — required for Chirp 2 (v2 API). Omit to use v1p1beta1 with Chirp. */
   projectId?: string
   /** BCP-47 language code (default: 'en-US'). Google STT only. */
   languageCode?: string
-  /** Google STT model override (default: 'chirp_2' with projectId, 'chirp' without). */
+  /**
+   * Model override. Google STT: default 'chirp_2' with projectId, 'chirp' without.
+   * Gemini: default 'gemini-3.6-flash'.
+   */
   model?: string
 }
 
@@ -27,6 +30,7 @@ const STT_PRICING: Record<string, number> = {
   'openai-whisper': 0.006,
   'groq-whisper': 0.00, // Free tier
   'google-stt': 0.048,  // Chirp / Chirp 2 — $0.048/min
+  'gemini-stt': 0.003,  // Gemini Flash audio input, approx per minute
 }
 
 function createSTTMetrics(): ProviderMetrics {
@@ -154,6 +158,101 @@ export function createSTT(config: STTConfig): STTProvider {
             timeout: 5_000,
           })
           return { ok: res.status >= 200 && res.status < 500, latencyMs: Date.now() - start }
+        } catch (err: any) {
+          return { ok: false, latencyMs: Date.now() - start, error: err?.message ?? String(err) }
+        }
+      },
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Gemini (Generative Language API — multimodal audio input)
+  //
+  // Reachable with a plain AI Studio key: no GCP project, no OAuth, and no
+  // Cloud Speech-to-Text API enablement, unlike the 'google' provider above.
+  // ---------------------------------------------------------------------------
+  if (provider === 'gemini') {
+    const model = config.model || 'gemini-3.6-flash'
+    const metrics = createSTTMetrics()
+    const log = getAppLogger('stt')
+    const labels = { provider: 'gemini-stt' }
+    const prompt =
+      'Transcribe this audio verbatim. Output only the transcript text, with no ' +
+      'commentary, speaker labels, or quotation marks. If the audio contains no ' +
+      'intelligible speech, output nothing at all.'
+
+    return {
+      name: 'gemini-stt',
+
+      async transcribe(audioBuffer: Buffer, mimeType: string = 'audio/wav'): Promise<{ text: string }> {
+        const start = Date.now()
+        const m = getMetrics()
+
+        try {
+          const res = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+            {
+              contents: [
+                {
+                  parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType, data: audioBuffer.toString('base64') } },
+                  ],
+                },
+              ],
+              generationConfig: { temperature: 0 },
+            },
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 30_000,
+            },
+          )
+
+          const latencyMs = Date.now() - start
+          metrics.requestCount++
+          metrics.successCount++
+          metrics.avgLatencyMs =
+            (metrics.avgLatencyMs * (metrics.requestCount - 1) + latencyMs) / metrics.requestCount
+
+          m.counter('xspace_stt_requests_total', 'Total STT requests', labels)
+          m.histogram('xspace_stt_latency_ms', latencyMs, 'STT request latency', labels)
+          m.histogram('xspace_stt_audio_bytes', audioBuffer.length, 'Audio bytes processed', labels)
+          log.debug({ provider: 'gemini-stt', model, latencyMs, audioBytes: audioBuffer.length }, 'STT transcription completed')
+
+          // Skip thought/signature parts — only concatenate real text output.
+          const parts: any[] = res.data?.candidates?.[0]?.content?.parts ?? []
+          const text = parts
+            .map((p) => (typeof p?.text === 'string' ? p.text : ''))
+            .join(' ')
+            .trim()
+
+          return { text }
+        } catch (err) {
+          metrics.requestCount++
+          metrics.errorCount++
+          m.counter('xspace_stt_requests_total', 'Total STT requests', labels)
+          m.counter('xspace_stt_errors_total', 'STT request errors', labels)
+          log.error({ err, provider: 'gemini-stt' }, 'STT transcription failed')
+          throw err
+        }
+      },
+
+      getMetrics(): ProviderMetrics {
+        return { ...metrics }
+      },
+
+      estimateCost(durationSeconds: number): number {
+        return (durationSeconds / 60) * (STT_PRICING['gemini-stt'] ?? 0)
+      },
+
+      async checkHealth(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+        const start = Date.now()
+        try {
+          const res = await axios.get(
+            `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+            { timeout: 5_000 },
+          )
+          return { ok: res.status >= 200 && res.status < 300, latencyMs: Date.now() - start }
         } catch (err: any) {
           return { ok: false, latencyMs: Date.now() - start, error: err?.message ?? String(err) }
         }

@@ -338,11 +338,13 @@ function createOpenAICompatibleProvider(
   providerLabel: string,
   inputPricePer1M: number,
   outputPricePer1M: number,
+  defaultReasoningEffort?: string,
 ): LLMProvider {
   const log = getAppLogger('llm')
   const apiKey = config.apiKey ?? ''
   const model = config.model || defaultModel
   const maxTokens = config.maxTokens || 300
+  const reasoningEffort = config.reasoningEffort ?? defaultReasoningEffort
   const maxHistory = config.maxHistory || 20
   const streamStartTimeout = config.timeout?.streamStart ?? 30_000
   const totalTimeout = config.timeout?.total ?? 120_000
@@ -393,7 +395,13 @@ function createOpenAICompatibleProvider(
       try {
         response = await axios.post(
           `${baseURL}/chat/completions`,
-          { model, messages, max_tokens: maxTokens, stream: true },
+          {
+            model,
+            messages,
+            max_tokens: maxTokens,
+            stream: true,
+            ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+          },
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -418,14 +426,20 @@ function createOpenAICompatibleProvider(
       }
 
       let fullResponse = ''
+      // SSE events can straddle network chunk boundaries — a single `data:` line
+      // may arrive split across two reads (Gemini's final chunk carries a multi-KB
+      // thought signature and reliably splits). Buffer until a newline so we never
+      // hand a half-line to JSON.parse and silently drop the terminating event.
+      let buffer = ''
       try {
         for await (const chunk of response.data) {
           if (abortController.signal.aborted) break
 
-          const lines: string[] = chunk
-            .toString()
-            .split('\n')
-            .filter((l: string) => l.startsWith('data: '))
+          buffer += chunk.toString()
+          const parts = buffer.split('\n')
+          // Last element is an incomplete line — keep it for the next read.
+          buffer = parts.pop() ?? ''
+          const lines: string[] = parts.filter((l: string) => l.startsWith('data: '))
 
           for (const line of lines) {
             const data = line.slice(6).trim()
@@ -440,6 +454,11 @@ function createOpenAICompatibleProvider(
                 outputTokens += estimateTokens(delta)
                 fullResponse += delta
                 yield delta
+              }
+              // An explicit finish_reason also marks a complete stream — not every
+              // OpenAI-compatible backend is guaranteed to follow it with [DONE].
+              if (parsed.choices?.[0]?.finish_reason) {
+                streamCompleted = true
               }
             } catch {
               // skip malformed chunks
@@ -603,7 +622,7 @@ export function createLLM(config: AIConfig): LLMProvider {
     }
     case 'gemini': {
       // Gemini exposes an OpenAI-compatible endpoint — no extra SDK needed.
-      const model = config.model || 'gemini-2.0-flash'
+      const model = config.model || 'gemini-3.6-flash'
       const isPro = model.includes('pro')
       const isFlashLite = model.includes('lite')
       let inputPrice: number
@@ -625,6 +644,10 @@ export function createLLM(config: AIConfig): LLMProvider {
         isPro ? 'gemini-pro' : 'gemini-flash',
         inputPrice,
         outputPrice,
+        // Gemini 3.x reasons by default and those tokens count against max_tokens,
+        // which truncates short conversational replies mid-sentence. Live Space
+        // banter wants speed over deliberation, so keep reasoning minimal.
+        'minimal',
       )
     }
     case 'custom':

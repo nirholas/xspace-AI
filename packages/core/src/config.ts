@@ -34,6 +34,7 @@ const AIConfigSchema = z.object({
   systemPrompt: z.string().min(1, 'systemPrompt is required'),
   maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
+  reasoningEffort: z.string().optional(),
   maxHistory: z.number().int().positive().optional(),
   timeout: z
     .object({
@@ -53,8 +54,9 @@ const AIConfigSchema = z.object({
 
 /** Zod schema for {@link VoiceConfig}. */
 const VoiceConfigSchema = z.object({
-  provider: z.enum(['elevenlabs', 'openai', 'browser', 'groq', 'google']),
+  provider: z.enum(['elevenlabs', 'openai', 'browser', 'groq', 'google', 'gemini']),
   apiKey: z.string().optional(),
+  model: z.string().optional(),
   voiceId: z.string().optional(),
   speed: z.number().min(0.25).max(4.0).optional(),
   stability: z.number().min(0).max(1).optional(),
@@ -62,7 +64,7 @@ const VoiceConfigSchema = z.object({
 
 /** Zod schema for {@link TranscriptionConfig}. */
 const TranscriptionConfigSchema = z.object({
-  provider: z.enum(['groq', 'openai', 'google']),
+  provider: z.enum(['groq', 'openai', 'google', 'gemini']),
   apiKey: z.string().optional(),
   languageCode: z.string().optional(),
   projectId: z.string().optional(),

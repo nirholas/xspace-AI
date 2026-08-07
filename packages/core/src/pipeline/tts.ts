@@ -38,17 +38,55 @@ const DEFAULT_GOOGLE_VOICE_MAP: Record<number, string> = {
   1: 'en-US-Studio-Q',  // Female Studio voice
 }
 
+/**
+ * Default Gemini TTS voice mapping per agent index.
+ * Prebuilt voices on the Generative Language API — see
+ * https://ai.google.dev/gemini-api/docs/speech-generation for the full list.
+ */
+const DEFAULT_GEMINI_VOICE_MAP: Record<number, string> = {
+  0: 'Kore',   // Firm, even-toned
+  1: 'Puck',   // Upbeat
+}
+
 // Pricing per character
 const TTS_PRICING: Record<string, number> = {
   'openai-tts': 0.000015,
   'elevenlabs-tts': 0.000030,
   'groq-tts': 0.000010,
   'google-tts': 0.000160,  // Studio voices — $160/1M chars
+  'gemini-tts': 0.000010,  // gemini-2.5-flash-preview-tts, approx per output char
+}
+
+/** Wrap raw signed 16-bit little-endian mono PCM in a RIFF/WAVE container. */
+function pcmToWav(pcm: Buffer, sampleRate: number): Buffer {
+  const channels = 1
+  const bitsPerSample = 16
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8
+  const blockAlign = (channels * bitsPerSample) / 8
+
+  const header = Buffer.alloc(44)
+  header.write('RIFF', 0)
+  header.writeUInt32LE(36 + pcm.length, 4)
+  header.write('WAVE', 8)
+  header.write('fmt ', 12)
+  header.writeUInt32LE(16, 16)          // PCM subchunk size
+  header.writeUInt16LE(1, 20)           // audio format = PCM
+  header.writeUInt16LE(channels, 22)
+  header.writeUInt32LE(sampleRate, 24)
+  header.writeUInt32LE(byteRate, 28)
+  header.writeUInt16LE(blockAlign, 32)
+  header.writeUInt16LE(bitsPerSample, 34)
+  header.write('data', 36)
+  header.writeUInt32LE(pcm.length, 40)
+
+  return Buffer.concat([header, pcm])
 }
 
 export interface TTSConfig {
-  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google'
+  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini'
   apiKey?: string
+  /** Model override. Gemini only (default: 'gemini-2.5-flash-preview-tts'). */
+  model?: string
   voiceId?: string
   speed?: number
   stability?: number
@@ -294,6 +332,106 @@ export function createTTS(config: TTSConfig): TTSProvider {
         try {
           const res = await axios.get(
             `https://texttospeech.googleapis.com/v1/voices?key=${encodeURIComponent(apiKey!)}`,
+            { timeout: 5_000 },
+          )
+          return { ok: res.status >= 200 && res.status < 300, latencyMs: Date.now() - start }
+        } catch (err: any) {
+          return { ok: false, latencyMs: Date.now() - start, error: err?.message ?? String(err) }
+        }
+      },
+    }
+  }
+
+  // provider === 'gemini'
+  // Uses the Generative Language API (generativelanguage.googleapis.com), which an
+  // AI Studio key can reach directly. Unlike 'google', this needs no GCP project,
+  // no OAuth, and no Cloud Text-to-Speech API enablement.
+  if (provider === 'gemini') {
+    const geminiVoiceMap: Record<number, string> = {
+      ...DEFAULT_GEMINI_VOICE_MAP,
+      ...voiceMap,
+    }
+    const model = config.model || 'gemini-2.5-flash-preview-tts'
+    const metrics = createTTSMetrics()
+    const log = getAppLogger('tts')
+
+    return {
+      name: 'gemini-tts',
+
+      async synthesize(text: string, agentId: number = 0): Promise<Buffer | null> {
+        if (!apiKey) return null
+        const start = Date.now()
+
+        const voiceName = geminiVoiceMap[agentId] ?? geminiVoiceMap[0]
+        const m = getMetrics()
+        const labels = { provider: 'gemini' }
+
+        try {
+          const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+            {
+              contents: [{ parts: [{ text }] }],
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+                },
+              },
+            },
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 60_000,
+            },
+          )
+
+          const part = response.data?.candidates?.[0]?.content?.parts?.find(
+            (p: any) => p?.inlineData?.data,
+          )
+          if (!part) {
+            throw new Error('Gemini TTS returned no audio data')
+          }
+
+          const latencyMs = Date.now() - start
+          metrics.requestCount++
+          metrics.successCount++
+          metrics.avgLatencyMs =
+            (metrics.avgLatencyMs * (metrics.requestCount - 1) + latencyMs) / metrics.requestCount
+
+          m.counter('xspace_tts_requests_total', 'Total TTS requests', labels)
+          m.histogram('xspace_tts_latency_ms', latencyMs, 'TTS request latency', labels)
+          m.histogram('xspace_tts_characters', text.length, 'Characters synthesized', labels)
+          log.debug({ provider: 'gemini', voiceName, latencyMs, chars: text.length }, 'TTS synthesis completed')
+
+          // Gemini returns raw signed 16-bit PCM (mimeType 'audio/L16;codec=pcm;rate=24000').
+          // injectAudio() decodes via the browser's decodeAudioData, which needs a
+          // container — so wrap the PCM in a WAV header before handing it back.
+          const pcm = Buffer.from(part.inlineData.data, 'base64')
+          const rateMatch = /rate=(\d+)/.exec(part.inlineData.mimeType ?? '')
+          const sampleRate = rateMatch ? Number(rateMatch[1]) : 24_000
+          return pcmToWav(pcm, sampleRate)
+        } catch (err) {
+          metrics.requestCount++
+          metrics.errorCount++
+          m.counter('xspace_tts_requests_total', 'Total TTS requests', labels)
+          m.counter('xspace_tts_errors_total', 'TTS request errors', labels)
+          log.error({ err, provider: 'gemini' }, 'TTS synthesis failed')
+          throw err
+        }
+      },
+
+      getMetrics(): ProviderMetrics {
+        return { ...metrics }
+      },
+
+      estimateCost(characterCount: number): number {
+        return characterCount * (TTS_PRICING['gemini-tts'] ?? 0)
+      },
+
+      async checkHealth(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+        const start = Date.now()
+        try {
+          const res = await axios.get(
+            `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey!)}`,
             { timeout: 5_000 },
           )
           return { ok: res.status >= 200 && res.status < 300, latencyMs: Date.now() - start }

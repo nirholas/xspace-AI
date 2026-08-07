@@ -68,7 +68,9 @@ async function forceClick(page: Page, el: ElementHandle): Promise<void> {
 /**
  * Trusted click using Puppeteer's page.mouse — generates real OS-level events
  * that X/React will accept. Uses bounding box coordinates.
- * DO NOT use for the join/listen button (causes navigation), only for dock buttons.
+ *
+ * This is what the join/listen button needs: a synthetic DOM .click() on it
+ * dismisses the peek modal and drops you back on /home instead of joining.
  */
 async function trustedClick(page: Page, el: ElementHandle): Promise<void> {
   await page.evaluate((e: any) => {
@@ -87,6 +89,97 @@ async function trustedClick(page: Page, el: ElementHandle): Promise<void> {
   await page.mouse.down();
   await new Promise(r => setTimeout(r, 100));
   await page.mouse.up();
+}
+
+/**
+ * Detect whether we are actually inside the Space.
+ *
+ * The URL is not a reliable signal: after joining, X routes back to /home and
+ * keeps the Space in a persistent dock, so `/i/spaces/` disappears from the URL
+ * even though we are fully joined. What does hold is the dock's own controls —
+ * a Leave button plus a speaking affordance.
+ */
+async function isInSpace(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const labels = [...document.querySelectorAll('button, [role="button"]')].map((b) =>
+      `${b.getAttribute('aria-label') || ''} ${b.textContent || ''}`.toLowerCase(),
+    );
+    const hasLeave = labels.some((l) => /\bleave\b/.test(l));
+    const hasSpeakControl = labels.some((l) =>
+      /request to speak|manage space|unmute|mute|mic/.test(l),
+    );
+    return hasLeave && hasSpeakControl;
+  });
+}
+
+/**
+ * Click the Space peek modal's join button by real mouse event.
+ *
+ * X renders more than one "Start listening" control — the timeline behind the
+ * peek modal carries its own. Selecting by CSS alone can return the hidden one,
+ * and clicking its coordinates lands on the modal backdrop, which dismisses the
+ * modal and navigates to /home. So pick among all candidates the one that is
+ * actually visible and inside the viewport, then click its centre.
+ *
+ * @returns true if a candidate was found and clicked.
+ */
+async function clickVisibleJoinButton(page: Page): Promise<boolean> {
+  const target = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll('button, [role="button"]')];
+    const matches = nodes.filter((b) => {
+      const label = `${b.getAttribute('aria-label') || ''} ${b.textContent || ''}`;
+      return /start listening|tune in|join this space/i.test(label);
+    });
+    for (const el of matches) {
+      (el as HTMLElement).removeAttribute('disabled');
+      const r = el.getBoundingClientRect();
+      const onScreen =
+        r.width > 0 &&
+        r.height > 0 &&
+        r.top >= 0 &&
+        r.left >= 0 &&
+        r.bottom <= window.innerHeight &&
+        r.right <= window.innerWidth;
+      if (!onScreen) continue;
+      const style = window.getComputedStyle(el);
+      if (style.visibility === 'hidden' || style.display === 'none') continue;
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+    }
+    return null;
+  });
+
+  if (!target) return false;
+  await page.mouse.click(target.x, target.y);
+  return true;
+}
+
+/**
+ * Poll an element's bounding box until it stops moving, so a coordinate-based
+ * click isn't aimed at where the element used to be mid-animation.
+ * Resolves early if the element never appears — callers still have fallbacks.
+ */
+async function waitForStablePosition(
+  page: Page,
+  selector: string,
+  timeoutMs = 10_000,
+): Promise<void> {
+  const readBox = () =>
+    page.evaluate((sel: string) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return null;
+      return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}`;
+    }, selector);
+
+  const deadline = Date.now() + timeoutMs;
+  let previous: string | null = null;
+  while (Date.now() < deadline) {
+    const current = await readBox();
+    if (current && current === previous) return;
+    previous = current;
+    await delay(250);
+  }
 }
 
 /**
@@ -452,7 +545,15 @@ export async function joinSpace(
   getLogger().info('[X-Spaces] Navigating to Space:', spaceUrl);
   emitter.emit('status', 'joining-space');
 
-  await page.goto(spaceUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  // Wait for network idle, not just domcontentloaded: the peek modal is rendered
+  // client-side well after the document is ready, and clicking before it settles
+  // hits the backdrop and bounces to /home.
+  try {
+    await page.goto(spaceUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+  } catch {
+    await page.goto(spaceUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  }
+  await delay(5000);
 
   // Wait for the Space UI to render rather than using a fixed delay
   try {
@@ -465,6 +566,12 @@ export async function joinSpace(
     await delay(2000);
   }
 
+  // The join button exists in the DOM before the peek modal finishes animating
+  // into place. Clicking against a stale bounding box lands on the backdrop,
+  // which dismisses the modal and navigates to /home instead of joining — so
+  // wait for the button's geometry to stop moving first.
+  await waitForStablePosition(page, 'button[aria-label="Start listening"]');
+
   // Check if Space has ended
   const ended: boolean = await page.evaluate(() => {
     return (
@@ -476,8 +583,19 @@ export async function joinSpace(
     throw new SpaceNotFoundError(spaceUrl);
   }
 
+  // Preferred path: click the visible peek-modal button by real mouse event.
+  let joined = false;
+  if (await clickVisibleJoinButton(page)) {
+    getLogger().info('[X-Spaces] Clicked join button (visible peek modal)');
+    await delay(4000);
+    joined = await isInSpace(page);
+    if (!joined) {
+      getLogger().warn('[X-Spaces] Visible join click did not land — falling back');
+    }
+  }
+
   // Click Join/Listen button using SelectorEngine first, then legacy
-  const joinBtn = await findElement(
+  const joinBtn = joined ? null : await findElement(
     page,
     'join-button',
     SELECTORS.SPACE_JOIN_BUTTON,
@@ -486,12 +604,33 @@ export async function joinSpace(
   );
 
   if (joinBtn) {
-    // Remove disabled attribute and force-click -- X sets disabled on the
-    // button even when the Space is live, so we bypass it via trusted click
-    await forceClick(page, joinBtn);
-    getLogger().info('[X-Spaces] Clicked join button (forced)');
+    // X sets `disabled` on this button even when the Space is live, so strip it
+    // and click. The click must be a real mouse event — dispatching DOM .click()
+    // here closes the peek modal and lands on /home rather than joining.
+    await trustedClick(page, joinBtn);
+    getLogger().info('[X-Spaces] Clicked join button (trusted)');
     await delay(3000);
-  } else {
+
+    joined = await isInSpace(page);
+    // If the click closed the modal instead of joining, recover by reloading
+    // the Space and retrying rather than proceeding into a dead session.
+    if (!joined) {
+      getLogger().warn('[X-Spaces] Join click left the Space page — retrying');
+      await page.goto(spaceUrl, { waitUntil: 'networkidle2', timeout: 60_000 });
+      await delay(4000);
+      const retryBtn = await findElement(
+        page,
+        'join-button',
+        SELECTORS.SPACE_JOIN_BUTTON,
+        ['Start listening', 'Listen', 'Join', 'Join this Space', 'Tune in'],
+        selectorEngine,
+      );
+      if (retryBtn) {
+        await trustedClick(page, retryBtn);
+        await delay(3000);
+      }
+    }
+  } else if (!joined) {
     // Last resort: find any disabled join-like button and force-click it
     const forced: JSHandle = await page.evaluateHandle(() => {
       const candidates = [
@@ -522,13 +661,11 @@ export async function joinSpace(
     }
   }
 
-  // After clicking join, X sometimes stays on the home feed with a mini player
-  // instead of the full Space UI. Re-navigate to the Space URL to ensure we
-  // get the full interactable Space view with dock buttons.
-  const currentUrl = page.url();
-  const isOnSpacePage = currentUrl.includes('/spaces/');
-  if (!isOnSpacePage) {
-    getLogger().info(`[X-Spaces] Post-join URL is not Space page (${currentUrl}), re-navigating to: ${spaceUrl}`);
+  // Being on /home after the click is the NORMAL joined state — X docks the
+  // Space and routes back to the feed. Only re-navigate if the dock controls
+  // are genuinely absent (i.e. we are not in the Space at all).
+  if (!(await isInSpace(page))) {
+    getLogger().info(`[X-Spaces] Not in Space after join click (${page.url()}), re-navigating to: ${spaceUrl}`);
     await page.goto(spaceUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await delay(3000);
   }
@@ -549,7 +686,9 @@ export async function joinSpace(
     return hasDock || hasSpeakers || hasVisibleSpaceBtn;
   });
 
-  if (!hasFullSpaceUI) {
+  // Re-navigating while joined would LEAVE the Space, so only do it when the
+  // dock is truly gone.
+  if (!hasFullSpaceUI && !(await isInSpace(page))) {
     getLogger().info('[X-Spaces] Full Space UI not detected, re-navigating to Space URL...');
     await page.goto(spaceUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await delay(5000);
@@ -1473,6 +1612,11 @@ export async function getSpaceState(
 
   return await page.evaluate(() => {
     const text = document.body.innerText;
+    // A present Leave button means we are still docked in the Space — never
+    // report "ended" while it exists, no matter what stray text is on the page.
+    const stillDocked = [...document.querySelectorAll('button, [role="button"]')].some(
+      (b) => /\bleave\b/i.test(`${b.getAttribute('aria-label') || ''} ${b.textContent || ''}`),
+    );
     const state: {
       isLive: boolean;
       hasEnded: boolean;
@@ -1482,9 +1626,8 @@ export async function getSpaceState(
       isLive:
         text.includes('LIVE') ||
         !!document.querySelector('[data-testid="SpaceLiveIndicator"]'),
-      hasEnded:
-        text.includes('This Space has ended') ||
-        text.includes('Space ended'),
+      // Require the explicit ended banner AND that we are no longer docked.
+      hasEnded: !stillDocked && text.includes('This Space has ended'),
       isSpeaker: !!document.querySelector(
         'button[aria-label*="Mute"], button[aria-label*="unmute"], button[aria-label*="Unmute"]',
       ),
