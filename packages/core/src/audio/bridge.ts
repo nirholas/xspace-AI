@@ -460,7 +460,7 @@ export async function mp3ToPcmFloat32Browser(
         new (window.AudioContext || (window as any).webkitAudioContext)({
           sampleRate: 48000,
         });
-      const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+      const audioBuffer: AudioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
       return Array.from(audioBuffer.getChannelData(0));
     },
     base64

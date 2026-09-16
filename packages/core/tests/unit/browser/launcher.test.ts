@@ -195,13 +195,14 @@ describe('BrowserManager', () => {
       expect(capturedLaunchArgs.userDataDir).toBe('/tmp/browser-profile')
     })
 
-    it('should set default viewport to 1280x720', async () => {
+    // 1000px tall so the Space peek modal's "Start listening" button stays in view.
+    it('should set default viewport to 1280x1000', async () => {
       const manager = new BrowserManager()
       await manager.launch()
 
       expect(capturedLaunchArgs.defaultViewport).toEqual({
         width: 1280,
-        height: 720,
+        height: 1000,
       })
     })
   })

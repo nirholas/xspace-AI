@@ -8,8 +8,11 @@
     "create-xspace-agent": "./bin/create-xspace-agent"
   },
   "files": [
+    "bin/",
     "dist/",
-    "templates/"
+    "templates/",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
@@ -43,5 +46,3 @@
     "vitest": "^1.6.1"
   }
 }
-
-

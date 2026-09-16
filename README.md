@@ -78,8 +78,12 @@ node packages/cli/bin/xspace-agent join https://x.com/i/spaces/YOUR_SPACE_ID --p
 
 **1. Install**
 
-> The packages in this monorepo are **not published to npm yet**, so `npm install xspace-agent`
-> will 404. Install from source until the first release lands:
+```bash
+npm install xspace-agent            # the SDK
+npm create xspace-agent@latest      # or scaffold a new project
+```
+
+To work on the monorepo itself, install from source:
 
 ```bash
 git clone https://github.com/nirholas/xspace-AI.git
@@ -88,8 +92,7 @@ pnpm install
 pnpm build
 ```
 
-The SDK is then importable from `packages/core` (published name: `xspace-agent`),
-and the CLI runs from `packages/cli/bin/xspace-agent`.
+The CLI (`packages/cli`) is not on npm yet; run it from `packages/cli/bin/xspace-agent`.
 
 **2. Set environment variables**
 

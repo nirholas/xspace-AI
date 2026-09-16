@@ -244,8 +244,8 @@ describe('HealthMonitor', () => {
     expect(endedHandler).toHaveBeenCalled()
   })
 
-  it('should treat ws-closed + getSpaceState error as ended', async () => {
-    const mockPage = {} as any
+  it('should treat ws-closed + getSpaceState error on a closed page as ended', async () => {
+    const mockPage = { isClosed: () => true } as any
     const mockObserver = new EventEmitter() as any
     mockObserver.removeListener = vi.fn()
 
@@ -262,6 +262,26 @@ describe('HealthMonitor', () => {
     await vi.advanceTimersByTimeAsync(10)
 
     expect(endedHandler).toHaveBeenCalled()
+  })
+
+  it('should not end on ws-closed + getSpaceState error while the page is still open', async () => {
+    const mockPage = { isClosed: () => false } as any
+    const mockObserver = new EventEmitter() as any
+    mockObserver.removeListener = vi.fn()
+
+    monitor.setPage(mockPage)
+    monitor.setObserver(mockObserver)
+    mockGetSpaceState.mockRejectedValue(new Error('transient evaluation failure'))
+
+    const endedHandler = vi.fn()
+    monitor.onSpaceEnded(endedHandler)
+
+    monitor.start()
+
+    mockObserver.emit('network:ws-closed')
+    await vi.advanceTimersByTimeAsync(10)
+
+    expect(endedHandler).not.toHaveBeenCalled()
   })
 
   it('should use triple interval when observer is active', async () => {

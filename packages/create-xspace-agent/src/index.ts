@@ -33,7 +33,6 @@ interface ProjectOptions {
   provider: 'openai' | 'claude' | 'groq';
   typescript: boolean;
   template: 'basic' | 'multi-agent' | 'server';
-  includeExamples: boolean;
 }
 
 interface TemplateContext {
@@ -154,13 +153,6 @@ async function gatherOptions(
     });
   }
 
-  questions.push({
-    type: 'confirm',
-    name: 'includeExamples',
-    message: 'Include examples?',
-    default: true,
-  });
-
   const answers = questions.length > 0 ? await (await loadInquirer()).prompt(questions) : {};
 
   return {
@@ -168,7 +160,6 @@ async function gatherOptions(
     provider: (flags.provider as string) || answers.provider || 'openai',
     typescript: flags.ts ? true : flags.js ? false : answers.typescript ?? true,
     template: (flags.template as string) || answers.template || 'basic',
-    includeExamples: answers.includeExamples ?? true,
   };
 }
 
