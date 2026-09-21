@@ -105,6 +105,7 @@
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
+    "ws": "^8.18.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -120,6 +121,7 @@
     "@types/pino": "^7.0.5",
     "@types/qrcode": "^1.5.5",
     "@types/speakeasy": "^2.0.10",
+    "@types/ws": "^8.5.10",
     "@vitest/coverage-v8": "^4.1.0",
     "drizzle-kit": "^0.31.10",
     "typedoc": "^0.28.18",
