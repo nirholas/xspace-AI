@@ -388,3 +388,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instr
 ## License
 
 All rights reserved. See [LICENSE](LICENSE).
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=nirholas/xspace-AI&type=Date)](https://www.star-history.com/#nirholas/xspace-AI&Date)
