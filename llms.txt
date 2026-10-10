@@ -1,0 +1,28 @@
+# xspace-AI
+
+> TypeScript SDK and CLI for building AI agents that autonomously join, listen, and speak in X/Twitter Spaces. Supports multiple LLM providers (OpenAI, Claude, Groq), speech-to-text (Whisper, Deepgram), text-to-speech (ElevenLabs, OpenAI), multi-agent coordination, middleware pipelines, and a real-time admin dashboard. No Twitter API approval needed
+
+xspace-AI is an open-source repository by nirholas, part of the three.ws ecosystem.
+
+## Docs
+
+- [README](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md): install, usage and reference
+- [What is this?](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#what-is-this)
+- [Features](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#features)
+- [Requirements](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#requirements)
+- [Quick Start](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#quick-start)
+- [Deploy](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#deploy)
+- [Documentation](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#documentation)
+- [Project Structure](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#project-structure)
+- [Examples](https://github.com/nirholas/xspace-AI/blob/HEAD/README.md#examples)
+- [AGENTS.md](https://github.com/nirholas/xspace-AI/blob/HEAD/AGENTS.md): guidance for coding agents
+- [Full text for LLMs](https://github.com/nirholas/xspace-AI/blob/HEAD/llms-full.txt): the README inlined
+
+## Project
+
+- [Source](https://github.com/nirholas/xspace-AI)
+- [Issues](https://github.com/nirholas/xspace-AI/issues)
+- [Discussions](https://github.com/nirholas/xspace-AI/discussions)
+- [Homepage](https://nirholas.github.io/xspace-AI/)
+- [three.ws](https://three.ws): the platform this is part of
+- [All repositories by nirholas](https://github.com/nirholas/nirholas#readme)
