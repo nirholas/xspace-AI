@@ -83,8 +83,8 @@ export async function joinCommand(spaceUrl: string, options: JoinOptions): Promi
         systemPrompt: config.ai?.systemPrompt || 'You are a helpful AI agent participating in an X Space.',
       },
       voice: {
-        provider: (config.voice?.provider || process.env.TTS_PROVIDER || 'openai') as 'openai' | 'elevenlabs' | 'browser',
-        apiKey: process.env.ELEVENLABS_API_KEY || process.env.OPENAI_API_KEY,
+        provider: (config.voice?.provider || process.env.TTS_PROVIDER || 'openai') as 'openai' | 'elevenlabs' | '60db' | 'browser',
+        apiKey: process.env.SIXTYDB_API_KEY || process.env.ELEVENLABS_API_KEY || process.env.OPENAI_API_KEY,
       },
       browser: browserConfig,
       behavior: {

@@ -6,6 +6,7 @@
 // =============================================================================
 
 import axios from 'axios'
+import WebSocket, { type RawData } from 'ws'
 import type { TTSProvider, ProviderMetrics } from './types'
 import { getMetrics } from '../observability/metrics'
 import { getAppLogger } from '../observability/logger'
@@ -48,6 +49,16 @@ const DEFAULT_GEMINI_VOICE_MAP: Record<number, string> = {
   1: 'Puck',   // Upbeat
 }
 
+/**
+ * Default 60db voice mapping per agent index.
+ * Voice 0 is the 60db system default voice; voice 1 is the example voice from
+ * their docs. Browse the full list at https://app.60db.ai → Voices.
+ */
+const DEFAULT_60DB_VOICE_MAP: Record<number, string> = {
+  0: 'fbb75ed2-975a-40c7-9e06-38e30524a9a1',  // 60db system default voice
+  1: '7911a3e8',                               // voice from the 60db docs
+}
+
 // Pricing per character
 const TTS_PRICING: Record<string, number> = {
   'openai-tts': 0.000015,
@@ -55,6 +66,7 @@ const TTS_PRICING: Record<string, number> = {
   'groq-tts': 0.000010,
   'google-tts': 0.000160,  // Studio voices — $160/1M chars
   'gemini-tts': 0.000010,  // gemini-2.5-flash-preview-tts, approx per output char
+  '60db-tts': 0.00002,     // $0.00002 per character
 }
 
 /** Wrap raw signed 16-bit little-endian mono PCM in a RIFF/WAVE container. */
@@ -83,7 +95,7 @@ function pcmToWav(pcm: Buffer, sampleRate: number): Buffer {
 }
 
 export interface TTSConfig {
-  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini'
+  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini' | '60db'
   apiKey?: string
   /** Model override. Gemini only (default: 'gemini-2.5-flash-preview-tts'). */
   model?: string
@@ -246,6 +258,243 @@ export function createTTS(config: TTSConfig): TTSProvider {
         try {
           const res = await axios.get('https://api.elevenlabs.io/v1/voices', {
             headers: { 'xi-api-key': apiKey! },
+            timeout: 5000,
+          })
+          return { ok: res.status >= 200 && res.status < 300, latencyMs: Date.now() - start }
+        } catch (err: any) {
+          return { ok: false, latencyMs: Date.now() - start, error: err?.message ?? String(err) }
+        }
+      },
+    }
+  }
+
+  // provider === '60db'
+  // 60db voice platform (https://60db.ai). synthesize() uses the JSON-over-HTTP
+  // endpoint (base64 MP3 in a JSON envelope); synthesizeStream() drives the
+  // WebSocket protocol (create_context → send_text → flush_context → chunks).
+  if (provider === '60db') {
+    const dbVoiceMap: Record<number, string> = {
+      ...DEFAULT_60DB_VOICE_MAP,
+      ...voiceMap,
+    }
+    const metrics = createTTSMetrics()
+    const log = getAppLogger('tts')
+
+    return {
+      name: '60db-tts',
+
+      async synthesize(
+        text: string,
+        agentId: number = 0,
+      ): Promise<Buffer | null> {
+        if (!apiKey) return null
+        const start = Date.now()
+
+        const voiceId = dbVoiceMap[agentId] || dbVoiceMap[0]
+        const m = getMetrics()
+        const labels = { provider: '60db' }
+
+        try {
+          const response = await axios.post(
+            'https://api.60db.ai/tts-synthesize',
+            {
+              text,
+              voice_id: voiceId,
+              speed: config.speed ?? 1.0,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              timeout: 30_000,
+            },
+          )
+
+          const audioBase64: string | undefined = response.data?.audio_base64
+          if (!audioBase64) {
+            throw new Error('60db TTS returned no audio data')
+          }
+
+          const latencyMs = Date.now() - start
+          metrics.requestCount++
+          metrics.successCount++
+          metrics.avgLatencyMs =
+            (metrics.avgLatencyMs * (metrics.requestCount - 1) + latencyMs) / metrics.requestCount
+
+          m.counter('xspace_tts_requests_total', 'Total TTS requests', labels)
+          m.histogram('xspace_tts_latency_ms', latencyMs, 'TTS request latency', labels)
+          m.histogram('xspace_tts_characters', text.length, 'Characters synthesized', labels)
+          log.debug({ provider: '60db', latencyMs, chars: text.length }, 'TTS synthesis completed')
+
+          return Buffer.from(audioBase64, 'base64')
+        } catch (err) {
+          metrics.requestCount++
+          metrics.errorCount++
+          m.counter('xspace_tts_requests_total', 'Total TTS requests', labels)
+          m.counter('xspace_tts_errors_total', 'TTS request errors', labels)
+          log.error({ err, provider: '60db' }, 'TTS synthesis failed')
+          throw err
+        }
+      },
+
+      async *synthesizeStream(
+        text: string,
+        agentId: number = 0,
+      ): AsyncIterable<Buffer> {
+        if (!apiKey) return
+
+        const voiceId = dbVoiceMap[agentId] || dbVoiceMap[0]
+        // TLS — the API key travels in the query string, so never use plain ws://
+        const ws = new WebSocket(
+          `wss://api.60db.ai/ws/tts?apiKey=${encodeURIComponent(apiKey)}`,
+        )
+        const contextId = `xspace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+        /** Resolve on the first server frame matching `match`; reject on error. */
+        const waitFor = (match: (data: any) => boolean, what: string): Promise<void> =>
+          new Promise((resolve, reject) => {
+            const onMessage = (raw: RawData): void => {
+              try {
+                const data = JSON.parse(String(raw))
+                if (data.error) {
+                  cleanup()
+                  reject(new Error(data.error.message ?? `60db TTS ${what} failed`))
+                } else if (match(data)) {
+                  cleanup()
+                  resolve()
+                }
+              } catch {
+                // Ignore non-JSON frames
+              }
+            }
+            const onError = (err: Error): void => {
+              cleanup()
+              reject(err)
+            }
+            const cleanup = (): void => {
+              ws.off('message', onMessage)
+              ws.off('error', onError)
+            }
+            ws.on('message', onMessage)
+            ws.on('error', onError)
+          })
+
+        // Bridge WS frames into an async queue the generator can pull from.
+        type StreamItem = Buffer | { error: Error } | { done: true }
+        const queue: StreamItem[] = []
+        let waiter: ((item: StreamItem) => void) | null = null
+        const push = (item: StreamItem): void => {
+          if (waiter) {
+            const resolve = waiter
+            waiter = null
+            resolve(item)
+          } else {
+            queue.push(item)
+          }
+        }
+        const next = (): Promise<StreamItem> =>
+          queue.length > 0
+            ? Promise.resolve(queue.shift()!)
+            : new Promise((resolve) => {
+                waiter = resolve
+              })
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const onOpen = (): void => {
+              cleanup()
+              resolve()
+            }
+            const onError = (err: Error): void => {
+              cleanup()
+              reject(err)
+            }
+            const cleanup = (): void => {
+              ws.off('open', onOpen)
+              ws.off('error', onError)
+            }
+            ws.on('open', onOpen)
+            ws.on('error', onError)
+          })
+          await waitFor((d) => !!d.connection_established, 'connection')
+
+          ws.send(
+            JSON.stringify({
+              create_context: {
+                context_id: contextId,
+                voice_id: voiceId,
+                audio_config: {
+                  audio_encoding: 'LINEAR16',
+                  sample_rate_hertz: 24_000,
+                },
+                speaking_rate: config.speed ?? 1.0,
+              },
+            }),
+          )
+          await waitFor((d) => !!d.context_created, 'context creation')
+
+          ws.send(JSON.stringify({ send_text: { context_id: contextId, text } }))
+          ws.send(JSON.stringify({ flush_context: { context_id: contextId } }))
+
+          ws.on('message', (raw: RawData) => {
+            try {
+              const data = JSON.parse(String(raw))
+              if (data.audio_chunk?.audioContent) {
+                push(Buffer.from(data.audio_chunk.audioContent, 'base64'))
+              } else if (data.flush_completed) {
+                // Close the context so the server tears the session down.
+                try {
+                  ws.send(JSON.stringify({ close_context: { context_id: contextId } }))
+                } catch {
+                  // Socket may already be closing
+                }
+                push({ done: true })
+              } else if (data.error) {
+                push({ error: new Error(data.error.message ?? '60db TTS stream failed') })
+              }
+            } catch {
+              // Ignore non-JSON frames
+            }
+          })
+          ws.on('error', (err: Error) => push({ error: err }))
+          ws.on('close', () => push({ done: true }))
+
+          while (true) {
+            const item = await next()
+            if (Buffer.isBuffer(item)) {
+              // Chunks are raw LINEAR16 PCM (24 kHz, mono, signed 16-bit LE)
+              // and can be concatenated directly.
+              yield item
+            } else if ('error' in item) {
+              throw item.error
+            } else {
+              break
+            }
+          }
+        } finally {
+          // Tear the socket down even if the consumer abandons iteration early.
+          try {
+            ws.close()
+          } catch {
+            // Already closed
+          }
+        }
+      },
+
+      getMetrics(): ProviderMetrics {
+        return { ...metrics }
+      },
+
+      estimateCost(characterCount: number): number {
+        return characterCount * (TTS_PRICING['60db-tts'] ?? 0)
+      },
+
+      async checkHealth(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+        const start = Date.now()
+        try {
+          const res = await axios.get('https://api.60db.ai/voices', {
+            headers: { Authorization: `Bearer ${apiKey!}` },
             timeout: 5000,
           })
           return { ok: res.status >= 200 && res.status < 300, latencyMs: Date.now() - start }

@@ -54,7 +54,7 @@ const AIConfigSchema = z.object({
 
 /** Zod schema for {@link VoiceConfig}. */
 const VoiceConfigSchema = z.object({
-  provider: z.enum(['elevenlabs', 'openai', 'browser', 'groq', 'google', 'gemini']),
+  provider: z.enum(['elevenlabs', 'openai', 'browser', 'groq', 'google', 'gemini', '60db']),
   apiKey: z.string().optional(),
   model: z.string().optional(),
   voiceId: z.string().optional(),

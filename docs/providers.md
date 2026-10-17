@@ -107,6 +107,35 @@ Auto-detected: if ELEVENLABS_API_KEY exists → elevenlabs, else if OPENAI_API_K
 
 ---
 
+## 60db TTS — packages/core provider (`packages/core/src/pipeline/tts.ts`)
+
+The 60db voice platform (https://60db.ai) is implemented in the SDK provider factory
+alongside ElevenLabs. Select it with `voice.provider: '60db'` / `TTS_PROVIDER=60db` +
+`SIXTYDB_API_KEY` (get a key at app.60db.ai → Settings → Developer → API Keys).
+
+**`synthesize(text, agentId)`** — `POST https://api.60db.ai/tts-synthesize`
+- Bearer auth; body `{ text, voice_id, speed }` (max 5000 chars)
+- Response JSON envelope `{ audio_base64, sample_rate, output_format }` — decoded
+  to an MP3 Buffer before returning (same contract as ElevenLabs)
+
+**`synthesizeStream(text, agentId)`** — 60db TTS WebSocket, `wss://api.60db.ai/ws/tts?apiKey=...`
+- Full protocol driven per call: `create_context` → `send_text` → `flush_context`
+  → `audio_chunk`* → `flush_completed` → `close_context`
+- Requests LINEAR16 @ 24 kHz — yielded chunks are raw PCM (mono, signed 16-bit LE)
+  and can be concatenated directly
+- Socket is torn down in a `finally` block, so abandoning iteration early is safe
+
+**Voices** — per-agent voice map like other providers. Defaults:
+- agent 0: `fbb75ed2-975a-40c7-9e06-38e30524a9a1` (60db system default)
+- agent 1: `7911a3e8` (docs example voice)
+- Browse the full list at app.60db.ai → Voices, or `GET https://api.60db.ai/voices`
+
+**`checkHealth()`** — `GET https://api.60db.ai/voices` (Bearer auth, 5s timeout)
+
+**Cost** — `$0.00002` per character (`estimateCost()`; `TTS_PRICING['60db-tts']`)
+
+---
+
 ## Provider Data Flow Comparison
 
 ### WebRTC Flow (OpenAI Realtime):

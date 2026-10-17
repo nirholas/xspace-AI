@@ -6,6 +6,7 @@ import { createTTS } from '../../pipeline/tts'
 
 const hasOpenAI = !!process.env.OPENAI_API_KEY
 const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY
+const hasSixtyDB = !!process.env.SIXTYDB_API_KEY
 
 describe.skipIf(!hasOpenAI)('OpenAI TTS E2E', () => {
   const tts = createTTS({
@@ -77,6 +78,43 @@ describe.skipIf(!hasElevenLabs)('ElevenLabs TTS E2E', () => {
   }, 15_000)
 })
 
+describe.skipIf(!hasSixtyDB)('60db TTS E2E', () => {
+  const tts = createTTS({
+    provider: '60db',
+    apiKey: process.env.SIXTYDB_API_KEY!,
+  })
+
+  it('should synthesize speech from text', async () => {
+    const audio = await tts.synthesize('Hello, this is a test.', 0)
+
+    expect(audio).not.toBeNull()
+    expect(audio).toBeInstanceOf(Buffer)
+    expect(audio!.length).toBeGreaterThan(0)
+  }, 30_000)
+
+  it('should handle empty string gracefully', async () => {
+    try {
+      const audio = await tts.synthesize('', 0)
+      if (audio !== null) {
+        expect(audio).toBeInstanceOf(Buffer)
+      }
+    } catch (err: any) {
+      expect(err).toBeDefined()
+    }
+  }, 15_000)
+
+  it('should stream speech chunks over WebSocket', async () => {
+    const chunks: Buffer[] = []
+    for await (const chunk of tts.synthesizeStream!('Hello, this is a streaming test.', 0)) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks.length).toBeGreaterThan(0)
+    const total = Buffer.concat(chunks)
+    expect(total.length).toBeGreaterThan(0)
+  }, 30_000)
+})
+
 describe('Browser TTS (no API key needed)', () => {
   const tts = createTTS({ provider: 'browser' })
 
@@ -85,5 +123,4 @@ describe('Browser TTS (no API key needed)', () => {
     expect(audio).toBeNull()
   })
 })
-
 

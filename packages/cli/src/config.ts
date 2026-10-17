@@ -220,7 +220,13 @@ export function configToEnv(config: AgentConfig): void {
   }
 
   if (config.voice.provider) process.env.TTS_PROVIDER = config.voice.provider;
-  if (config.voice.apiKey) process.env.ELEVENLABS_API_KEY = config.voice.apiKey;
+  if (config.voice.apiKey) {
+    if (config.voice.provider === '60db') {
+      process.env.SIXTYDB_API_KEY = config.voice.apiKey;
+    } else {
+      process.env.ELEVENLABS_API_KEY = config.voice.apiKey;
+    }
+  }
   if (config.auth.authToken) process.env.X_AUTH_TOKEN = config.auth.authToken;
   if (config.auth.cookiePath) process.env.COOKIE_PATH = config.auth.cookiePath;
 }

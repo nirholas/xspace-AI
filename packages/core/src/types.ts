@@ -158,7 +158,7 @@ export interface AIConfig {
  */
 export interface VoiceConfig {
   /** TTS provider to use. `'browser'` delegates synthesis to the client. */
-  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini';
+  provider: 'elevenlabs' | 'openai' | 'groq' | 'browser' | 'google' | 'gemini' | '60db';
   /** API key for the TTS provider (not needed for `'browser'`). */
   apiKey?: string;
   /** Model override. Gemini only (default: 'gemini-2.5-flash-preview-tts'). */
