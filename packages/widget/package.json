@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.0",
+    "esbuild": "^0.27.7",
     "jsdom": "^25.0.1",
     "typescript": "^5.3.3",
     "vite": "^8.0.2",
@@ -29,5 +30,3 @@
     "vitest": "^4.1.0"
   }
 }
-
-
