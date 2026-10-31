@@ -311,8 +311,8 @@ describe('UsageTracker', () => {
 
       const result = await tracker.checkQuota('org-1', 'free', 'session_minutes')
       const nextMonth = new Date()
-      nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1)
       nextMonth.setUTCDate(1)
+      nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1)
       expect(result.resetAt.getUTCMonth()).toBe(nextMonth.getUTCMonth())
     })
   })
