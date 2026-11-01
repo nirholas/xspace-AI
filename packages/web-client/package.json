@@ -24,12 +24,12 @@
   "license": "UNLICENSED",
   "sideEffects": false,
   "dependencies": {
-    "@solana/spl-token": "^0.4.9",
-    "@solana/web3.js": "^1.95.4",
-    "socket.io-client": "^4.8.3"
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^20.19.43",
     "typescript": "^5.9.3"
   }
 }
