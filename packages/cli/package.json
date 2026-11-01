@@ -28,7 +28,7 @@
     "inquirer": "^9.3.8",
     "ora": "^5.4.1",
     "xspace-agent": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/express": "^4.17.25",
