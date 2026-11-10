@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
@@ -29,12 +31,16 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "vite": "^5.4.0",
+    "vite": "^6.4.4",
     "vite-plugin-dts": "^3.9.0"
   },
   "sideEffects": false,
   "license": "UNLICENSED",
-  "keywords": ["voice-chat", "ai", "core", "socket.io", "audio"]
+  "keywords": [
+    "voice-chat",
+    "ai",
+    "core",
+    "socket.io",
+    "audio"
+  ]
 }
-
-

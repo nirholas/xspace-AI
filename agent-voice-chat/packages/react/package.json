@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
@@ -39,12 +41,16 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^5.4.0",
-    "vite": "^5.4.0",
+    "vite": "^6.4.4",
     "vite-plugin-dts": "^3.9.0"
   },
   "sideEffects": false,
   "license": "UNLICENSED",
-  "keywords": ["voice-chat", "ai", "react", "hooks", "component"]
+  "keywords": [
+    "voice-chat",
+    "ai",
+    "react",
+    "hooks",
+    "component"
+  ]
 }
-
-
