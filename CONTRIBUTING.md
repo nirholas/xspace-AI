@@ -19,7 +19,7 @@ Thanks for your interest in contributing! This guide will help you get started.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22.12+
 - pnpm 8+
 - Chromium (for E2E tests — Puppeteer downloads this automatically)
 

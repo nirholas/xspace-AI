@@ -27,7 +27,7 @@ Thanks for your interest in contributing! This guide will help you get started.
 ## Development Setup
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 22.12+
 - pnpm 8+
 - Chromium (for E2E tests)
 

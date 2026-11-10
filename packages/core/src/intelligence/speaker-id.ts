@@ -5,7 +5,7 @@
 // Intelligence – Speaker Identification
 // =============================================================================
 
-import type { Page } from 'puppeteer'
+import type { Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 
 export interface SpeakerProfile {
   id: string

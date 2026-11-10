@@ -2,7 +2,7 @@
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§32]
 
 import { EventEmitter } from 'events'
-import type { Page } from 'puppeteer'
+import type { Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 import type { STTProvider, TTSProvider } from '../types'
 import type { AudioLevels, WebRTCStats, AudioPipelineEvents } from './types'
 import { injectAudio, pcmChunksToWav } from './bridge'

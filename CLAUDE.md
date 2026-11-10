@@ -173,7 +173,7 @@ Specific error classes: `AuthenticationError`, `SpaceNotFoundError`, `SpaceEnded
 
 - **Framework**: Vitest with `@vitest/coverage-v8`
 - **Location**: `packages/core/tests/` and `packages/core/src/__tests__/`
-- **CI matrix**: Node 18, 20, 22
+- **CI matrix**: Node 22, 24
 - **Coverage targets**: ~80% statements/functions/lines, ~70% branches
 - **E2E tests**: Only run on `main` push (require API key secrets)
 - **Test timeout**: 10 seconds
@@ -188,7 +188,7 @@ Specific error classes: `AuthenticationError`, `SpaceNotFoundError`, `SpaceEnded
 
 1. **lint** — ESLint
 2. **typecheck** — tsc --noEmit (server + client)
-3. **test** — Vitest on Node 18/20/22, coverage upload on Node 20
+3. **test** — Vitest on Node 22/24, coverage upload on Node 22
 4. **build** — Depends on lint + typecheck + test passing. Verifies package size and exports.
 5. **e2e** — Main branch only, requires API key secrets
 6. **security-audit** — `npm audit --audit-level=high`
@@ -222,7 +222,7 @@ The `agent-voice-chat/` directory is a standalone voice chat agent with its own 
 
 ## Docker
 
-Multi-stage Dockerfile: deps → builder → runtime (node:20-slim + Chromium).
+Multi-stage Dockerfile: deps → builder → runtime (node:22-slim + Chromium).
 - Health check: `GET /health` every 30s
 - Persistent volumes: `/app/cookies`, `/app/data`
 - Requires 2GB shared memory for Chromium (`--shm-size=2gb`)

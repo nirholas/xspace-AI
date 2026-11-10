@@ -57,7 +57,7 @@ jobs:
         with: { ref: ${{ inputs.branch || 'main' }} }
 
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with: { node-version: 22, cache: npm }
 
       - name: Install production deps
         run: npm ci --omit=dev --no-audit --no-fund

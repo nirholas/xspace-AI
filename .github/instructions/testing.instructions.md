@@ -24,7 +24,7 @@ cd packages/core && npx vitest run src/__tests__/e2e/      # E2E only
 - Use mock providers — never call real APIs in unit tests
 - Test timeout: 10 seconds
 - Coverage targets: ~80% statements/functions/lines, ~70% branches
-- CI matrix: Node 18, 20, 22
+- CI matrix: Node 22, 24
 - Use Socket.IO test helpers and test app factories for server tests
 
 ## Rules

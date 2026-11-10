@@ -11,7 +11,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer' with { 'resolution-mode': 'import' };
 import type { BrowserConfig, BrowserMode } from '../types';
 import { getLogger } from '../logger';
 import { SecureCookieStore } from './secure-cookie-store';

@@ -9,7 +9,7 @@ Containerized deployment with Docker that handles all Puppeteer dependencies, pl
 ## Dockerfile
 
 ```dockerfile
-FROM node:20-slim
+FROM node:22-slim
 
 # Install Chromium dependencies + audio tools
 RUN apt-get update && apt-get install -y \
@@ -54,7 +54,7 @@ COPY . .
 RUN rm -f x-spaces/.cookies.json .env
 
 # Tell Puppeteer to use installed Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 EXPOSE 3000

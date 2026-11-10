@@ -1,7 +1,7 @@
 # ============================================================
 # Stage 1: Install dependencies
 # ============================================================
-FROM node:20-slim AS deps
+FROM node:22-slim AS deps
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm --version
 
 # Skip Puppeteer's bundled Chromium download (we use system Chromium in runtime)
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Copy package files for dependency installation (layer caching)
 COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -43,7 +43,7 @@ RUN pnpm prune --prod
 # ============================================================
 # Stage 3: Production runtime
 # ============================================================
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 
 # Install Chromium dependencies for Puppeteer + dumb-init for signal handling
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -67,7 +67,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Tell Puppeteer to use system Chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Create non-root user
 RUN groupadd -r xspace && useradd -r -g xspace -m -d /home/xspace xspace

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§71]
 
-import type { Page } from 'puppeteer'
+import type { Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 import type { AgentStatus } from './types'
 import type { DOMObserver } from './browser/observer'
 import * as spaceUI from './browser/space-ui'

@@ -10,7 +10,7 @@ You are a test engineer for the xspace-agent TypeScript monorepo. Your job is to
 - Tests live in `packages/core/tests/` and `packages/core/src/__tests__/`
 - E2E tests in `packages/core/src/__tests__/e2e/` (require API keys)
 - Coverage targets: ~80% statements/functions/lines, ~70% branches
-- CI runs on Node 18, 20, 22
+- CI runs on Node 22 and 24
 
 ## Approach
 

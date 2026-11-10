@@ -20,7 +20,7 @@
 //   await bridge.injectSpeech(pcmFloat32Buffer)  // route Space speech → NotebookLM mic
 
 import { EventEmitter } from 'events'
-import type { Browser, Page } from 'puppeteer'
+import type { Browser, Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 import { getAppLogger } from '../../observability/logger'
 import { notebookLMAudioHooksCode } from './audio-hooks'
 import { NLM_SELECTORS } from './ui-selectors'

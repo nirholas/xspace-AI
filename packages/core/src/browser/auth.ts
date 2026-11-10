@@ -6,7 +6,7 @@
 // Cookie check -> token injection -> form login -> 2FA
 // =============================================================================
 
-import type { Page, ElementHandle } from 'puppeteer';
+import type { Page, ElementHandle } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { EventEmitter } from 'events';
 import os from 'os';
 import path from 'path';

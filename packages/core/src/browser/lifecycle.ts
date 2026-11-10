@@ -2,7 +2,7 @@
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§82]
 
 import { EventEmitter } from 'events'
-import type { Page } from 'puppeteer'
+import type { Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 import type { AuthConfig, BrowserConfig } from '../types'
 import { BrowserManager } from './launcher'
 import { login } from './auth'
@@ -336,7 +336,7 @@ export class BrowserLifecycle {
     return this.page
   }
 
-  getBrowser(): import('puppeteer').Browser | null {
+  getBrowser(): import('puppeteer', { with: { 'resolution-mode': 'import' } }).Browser | null {
     return this.browserManager?.browser ?? null
   }
 

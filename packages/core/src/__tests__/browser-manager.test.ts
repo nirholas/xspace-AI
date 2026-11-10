@@ -2,7 +2,7 @@
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§32]
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { BrowserManager } from '../browser/launcher';
 
 // Mock puppeteer and puppeteer-extra

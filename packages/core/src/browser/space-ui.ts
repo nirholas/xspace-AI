@@ -6,7 +6,7 @@
 // Event-driven via DOMObserver + self-healing via SelectorEngine
 // =============================================================================
 
-import type { Page, ElementHandle, JSHandle } from 'puppeteer';
+import type { Page, ElementHandle, JSHandle } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { EventEmitter } from 'events';
 import type { SelectorEngine } from './selector-engine';
 import type { DOMObserver } from './observer';

@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { EventEmitter } from 'events';
-import type { CDPSession, Page } from 'puppeteer';
+import type { CDPSession, Page } from 'puppeteer' with { 'resolution-mode': 'import' };
 import type { SelectorEngine } from './selector-engine';
 
 // ---------------------------------------------------------------------------

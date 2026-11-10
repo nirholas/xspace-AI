@@ -2,7 +2,7 @@
 // Copyright 2026 nirholas (https://github.com/nirholas/xspace-agent) [§65]
 
 import { EventEmitter } from 'events'
-import type { Page } from 'puppeteer'
+import type { Page } from 'puppeteer' with { 'resolution-mode': 'import' }
 import type {
   AgentStatus,
   AuthConfig,

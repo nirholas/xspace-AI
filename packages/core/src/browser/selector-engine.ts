@@ -6,7 +6,7 @@
 // Tries multiple strategies per UI element, caches successes, logs failures
 // =============================================================================
 
-import type { Page, ElementHandle } from 'puppeteer';
+import type { Page, ElementHandle } from 'puppeteer' with { 'resolution-mode': 'import' };
 
 // ---------------------------------------------------------------------------
 // Types
