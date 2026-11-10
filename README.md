@@ -420,3 +420,13 @@ Coding agents and LLM tooling can read this repo directly: [AGENTS.md](./AGENTS.
 [![Contributors](https://contrib.rocks/image?repo=nirholas/xspace-AI)](https://github.com/nirholas/xspace-AI/graphs/contributors)
 
 <!-- /three.ws:growth -->
+
+<!-- nirholas:watermark -->
+
+---
+
+<p align="center">
+  Built by <a href="https://github.com/nirholas"><b>nirholas</b></a> · <a href="https://x.com/nichxbt">@nichxbt</a> · <a href="https://github.com/nirholas">github.com/nirholas</a>
+</p>
+
+<!-- /nirholas:watermark -->
