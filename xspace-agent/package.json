@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.91.1",
     "axios": "^1.20.0",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
@@ -39,5 +39,9 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "@anthropic-ai/sdk@>=0.79.0 <0.91.1": "^0.91.1",
+    "@anthropic-ai/sdk@>=0.79.0 <0.81.0": "^0.91.1"
   }
 }
