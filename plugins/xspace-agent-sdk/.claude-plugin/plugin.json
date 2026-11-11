@@ -1,0 +1,16 @@
+{
+  "name": "xspace-agent-sdk",
+  "version": "0.2.0",
+  "description": "TypeScript SDK and CLI for AI agents that join, listen and speak in X Spaces.",
+  "author": {
+    "name": "nirholas"
+  },
+  "repository": "https://github.com/nirholas/xspace-AI",
+  "homepage": "https://nirholas.github.io/xspace-AI/",
+  "keywords": [
+    "xspace",
+    "twitter-spaces",
+    "voice-agent",
+    "sdk"
+  ]
+}
