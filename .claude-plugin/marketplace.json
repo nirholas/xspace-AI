@@ -1,0 +1,21 @@
+{
+  "name": "xspace-ai",
+  "owner": {
+    "name": "nirholas"
+  },
+  "description": "TypeScript SDK and CLI for AI agents that join, listen and speak in X Spaces.",
+  "plugins": [
+    {
+      "name": "xspace-agent-sdk",
+      "source": "./plugins/xspace-agent-sdk",
+      "description": "TypeScript SDK and CLI for AI agents that join, listen and speak in X Spaces.",
+      "category": "automation",
+      "tags": [
+        "xspace",
+        "twitter-spaces",
+        "voice-agent",
+        "sdk"
+      ]
+    }
+  ]
+}
